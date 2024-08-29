@@ -59,7 +59,9 @@
 
 
 (defn parse
-  "Ex:
+  "Parse values using malli.transform/string-transformer. It doesn't parse keys of maps.
+
+  Ex:
 
   (parse [:map] {:a :b})
 
@@ -78,7 +80,9 @@
 
 
 (defn parse-json
-  "Ex:
+  "Parse values using malli.transform/json-transformer. It doesn't parse keys of maps.
+
+  Ex:
 
   (parse-json [:map [:a :keyword]] {:a \"b\"})
 
@@ -102,7 +106,7 @@
   (decode-json \"{\\\"a\\\":\\\"b\\\"}\")
   "
   [string]
-  (chesire/parse-string string))
+  (chesire/parse-string string true))
 
 (comment
   (decode-json "{\"a\":\"b\"}")
