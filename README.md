@@ -1,38 +1,39 @@
-# clj-dev-toolbox/clj-dev-toolbox
+# darongmean/dev-clj
 
-FIXME: my new library.
+A collection of functions for Clojure REPL workflow.
+
+The functions are for automating common development tasks (for example: starting a local web server, running a database
+query, turning on/off email sending, etc.)
 
 ## Usage
 
-FIXME: write usage documentation!
+```clj
+;;; file user.clj
 
-Invoke a library API function from the command-line:
+(ns user)
 
-    $ clojure -X clj-dev-toolbox.clj-dev-toolbox/foo :a 1 :b '"two"'
-    {:a 1, :b "two"} "Hello, World!"
+(require 'dev)
 
-Run the project's tests (they'll fail until you edit them):
+;;; file other.clj
 
-    $ clojure -T:build test
+(def User [:map [:first-name :string]])
 
-Run the project's CI pipeline and build a JAR (this will fail until you edit the tests to pass):
-
-    $ clojure -T:build ci
-
-This will produce an updated `pom.xml` file with synchronized dependencies inside the `META-INF`
-directory inside `target/classes` and the JAR in `target`. You can update the version (and SCM tag)
-information in generated `pom.xml` by updating `build.clj`.
-
-Install it locally (requires the `ci` task be run first):
-
-    $ clojure -T:build install
-
-Deploy it to Clojars -- needs `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` environment
-variables (requires the `ci` task be run first):
-
-    $ clojure -T:build deploy
-
-Your library will be deployed to net.clojars.clj-dev-toolbox/clj-dev-toolbox on clojars.org by default.
+(comment
+ ;; use in comment section to execute in repl
+ (dev/exercise User)
+ ;=> 
+ ;({:first-name ""}
+ ; {:first-name ""}
+ ; {:first-name ""}
+ ; {:first-name "c"}
+ ; {:first-name ""}
+ ; {:first-name "1535y"}
+ ; {:first-name ""}
+ ; {:first-name "Rz"}
+ ; {:first-name "dTg0j3kF"}
+ ; {:first-name ""})
+ )
+```
 
 ## License
 
