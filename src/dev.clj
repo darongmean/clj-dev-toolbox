@@ -18,8 +18,13 @@
                        infer-schema
                        parse
                        parse-json
-                       decode-json
-                       encode-json]])
+                       read-json
+                       print-json
+                       print-json'
+                       read-edn
+                       print-edn
+                       pprint-str
+                       pprint]])
 
 ;;; fake data tools
 
@@ -124,7 +129,12 @@
    (println "(dev/help)                             ; print help text")
    (println "(dev/tools)                            ; list all the tools defined in the dev namespace")
    (println "(dev/doc ...) ; ex: (dev/doc dev/help) ; print the API documentation of a given Var")
-   (println "(dev/dir ...) ; ex: (dev/dir dev)      ; list the names of all the Vars defined a given namespace")
+   (println)
+   (println "Tagged literals:                       ; see https://github.com/henryw374/time-literals?tab=readme-ov-file#usage")
+   (println "ex: #time/date \"2022-01-01\"")
+   (println)
+   (println "Pretty print:                          ; see https://metaredux.com/posts/2019/12/05/pimp-my-print-method-prettier-clojure-built-in-types.html")
+   (println "ex: (dev/pprint (atom {:a :b}))        ;:=> #atom[{:a :b} 0x6cdba772]")
    (println)
    (tools)))
 
