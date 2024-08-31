@@ -1,6 +1,6 @@
 (ns dev.http
   (:require
-   [hato.client :as hato]))
+    [hato.client :as hato]))
 
 
 (defn http

@@ -1,20 +1,20 @@
 (ns dev.inspect
   (:require
-   [dev.inspect.portal]
-   [dev.system :as system]
-   [portal.api :as p]))
+    [dev.inspect.inspector]
+    [dev.system :as system]
+    [portal.api :as portal]))
 
 
 (defn *v
   "Current value of selected item in the portal inspector."
   []
-  (deref dev.inspect.portal/inspector))
+  (deref dev.inspect.inspector/inspector))
 
 
 (defn inspect
   [value]
-  (system/start #'dev.inspect.portal/inspector)
-  (p/submit value)
+  (system/start #'dev.inspect.inspector/inspector)
+  (portal/submit value)
   value)
 
 

@@ -1,27 +1,27 @@
 (ns dev.data
   (:refer-clojure :exclude [ex-message replace])
   (:require
-   [cheshire.core :as chesire]
-   [clojure.string :as string]
-   [edamame.core :as edamame]
-   [lambdaisland.data-printers :as dp]
-   [lambdaisland.data-printers.deep-diff2 :as dp-ddiff2]
-   [lambdaisland.data-printers.puget :as dp-puget]
-   [lambdaisland.data-printers.transit :as dp-transit]
-   [malli.core :as m]
-   [malli.error :as me]
-   [malli.provider :as mp]
-   [malli.transform :as mt]
-   [puget.printer :as puget]
-   [taoensso.truss :as truss]
-   [time-literals.read-write]))
+    [cheshire.core :as chesire]
+    [clojure.string :as string]
+    [edamame.core :as edamame]
+    [lambdaisland.data-printers :as data-printers]
+    [lambdaisland.data-printers.deep-diff2 :as data-printers.deep-diff2]
+    [lambdaisland.data-printers.puget :as data-printers.puget]
+    [lambdaisland.data-printers.transit :as data-printers.transit]
+    [malli.core :as malli]
+    [malli.error :as malli.error]
+    [malli.provider :as malli.provider]
+    [malli.transform :as malli.transform]
+    [puget.printer :as puget]
+    [taoensso.truss :as truss]
+    [time-literals.read-write :as time-literals]))
 
 
 ;; see https://github.com/metosin/malli?tab=readme-ov-file#development-mode
 ;; invoke before mp/provider call to work around random schema error messages caused by the function
 ((requiring-resolve 'malli.dev/stop!))
 
-(def provider (mp/provider))
+(def provide (malli.provider/provider))
 (defn infer-schema
   "Infer a Malli schema.
 
@@ -38,9 +38,9 @@
   "
   [value & values]
   (cond
-    (sequential? value) (provider value)
-    (set? value) (provider value)
-    :else (provider (conj values value))))
+    (sequential? value) (provide value)
+    (set? value) (provide value)
+    :else (provide (conj values value))))
 
 (comment
   (infer-schema [{:a :b}])
@@ -57,14 +57,14 @@
 
 (defn ex-message [ex]
   (let [explain (some-> ex
-                        (ex-data)
-                        (:data)
-                        (:explain))]
+                  (ex-data)
+                  (:data)
+                  (:explain))]
     (when explain
       {:ex.explain/value  (:value explain)
        :ex.explain/errors (some-> explain
-                                  (me/with-spell-checking)
-                                  (me/humanize))})))
+                            (malli.error/with-spell-checking)
+                            (malli.error/humanize))})))
 
 
 (defn parse
@@ -78,7 +78,7 @@
   (parse [:map] 123)
   "
   [schema value]
-  (m/coerce schema value mt/string-transformer))
+  (malli/coerce schema value malli.transform/string-transformer))
 
 (comment
   (parse [:map] {:a :b})
@@ -99,7 +99,7 @@
   (parse-json [:map [:a :keyword]] {\"a\" \"b\"})
   "
   [schema value]
-  (m/coerce schema value mt/json-transformer))
+  (malli/coerce schema value malli.transform/json-transformer))
 
 (comment
   (parse-json [:map [:a :keyword]] {:a "b"})
@@ -136,9 +136,9 @@
   [value]
   (let [string (print-json' value)]
     (truss/have! read-json string
-                 :data {:msg    "JSON string generated, but failed to read-json"
-                        :string string
-                        :value  value})
+      :data {:msg    "JSON string generated, but failed to read-json"
+             :string string
+             :value  value})
     string))
 
 (comment
@@ -149,8 +149,8 @@
 
 (defn replace-string [s kvs]
   (reduce #(string/replace %1 (first %2) (second %2))
-          s
-          (seq kvs)))
+    s
+    (seq kvs)))
 
 (defn read-edn
   "Ex:
@@ -160,7 +160,7 @@
   [string & {:keys [replace]}]
   (if (seq replace)
     (edamame/parse-string (replace-string string replace)
-                          {:readers time-literals.read-write/tags})
+      {:readers time-literals.read-write/tags})
     (edamame/parse-string string {:readers time-literals.read-write/tags})))
 
 (comment
@@ -170,12 +170,12 @@
 
 
 (defn pprint [value]
-  (puget/pprint value {:print-handlers @dp-puget/handlers
+  (puget/pprint value {:print-handlers @data-printers.puget/handlers
                        :print-fallback :print}))
 
 (defn pprint-str
   [value]
-  (puget/pprint-str value {:print-handlers @dp-puget/handlers
+  (puget/pprint-str value {:print-handlers @data-printers.puget/handlers
                            :print-fallback :print}))
 
 (defn print-edn
@@ -186,9 +186,9 @@
                  (replace-string (pprint-str value) replace)
                  (pprint-str value))]
     (truss/have! read-edn string
-                 :data {:msg    "EDN string generated, but failed to read-edn"
-                        :string string
-                        :value  value})
+      :data {:msg    "EDN string generated, but failed to read-edn"
+             :string string
+             :value  value})
     string))
 
 (comment
@@ -237,11 +237,11 @@
   - https://clojure.org/reference/reader#tagged_literals
   - https://github.com/lambdaisland/data-printers?tab=readme-ov-file#usage"
   [type tag to-edn]
-  (dp/register-print type tag to-edn)
-  (dp/register-pprint type tag to-edn)
-  (dp-puget/register-puget type tag to-edn)
-  (dp-ddiff2/register-deep-diff2 type tag to-edn)
-  (dp-transit/register-write-handler type tag to-edn))
+  (data-printers/register-print type tag to-edn)
+  (data-printers/register-pprint type tag to-edn)
+  (data-printers.puget/register-puget type tag to-edn)
+  (data-printers.deep-diff2/register-deep-diff2 type tag to-edn)
+  (data-printers.transit/register-write-handler type tag to-edn))
 
 (comment
   ;;;
@@ -267,4 +267,4 @@
 
 ;; see https://github.com/henryw374/time-literals?tab=readme-ov-file#reading-and-writing-edn
 ;; ex: #time/date "2022-01-01"
-(time-literals.read-write/print-time-literals-clj!)
+(time-literals/print-time-literals-clj!)

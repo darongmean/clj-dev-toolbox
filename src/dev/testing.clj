@@ -1,21 +1,21 @@
-(ns dev.test
+(ns dev.testing
   (:require
-   [clojure.test :as t]
-   [clojure.test.check :as tc]
-   [clojure.test.check.generators :as gen]
-   [com.gfredericks.test.chuck.properties :as prop']
-   [dev.data :as data]
-   [malli.core :as m]
-   [malli.generator :as mg]
-   [matcho.core :as matcho]))
+    [clojure.test :as clj.test]
+    [clojure.test.check :as test.check]
+    [clojure.test.check.generators :as test.check.generators]
+    [com.gfredericks.test.chuck.properties :as properties]
+    [dev.data :as data]
+    [malli.core :as malli]
+    [malli.generator :as malli.generator]
+    [matcho.core :as matcho]))
 
 
 (defn format-quick-check [qc]
   (-> qc
-      (update-in [:result] #(or (data/ex-message %) (ex-message %) %))
-      (update-in [:result-data :clojure.test.check.properties/error] #(or (data/ex-message %) (ex-message %) %))
-      (update-in [:shrunk :result] #(or (data/ex-message %) (ex-message %) %))
-      (update-in [:shrunk :result-data :clojure.test.check.properties/error] #(or (data/ex-message %) (ex-message %) %))))
+    (update-in [:result] #(or (data/ex-message %) (ex-message %) %))
+    (update-in [:result-data :clojure.test.check.properties/error] #(or (data/ex-message %) (ex-message %) %))
+    (update-in [:shrunk :result] #(or (data/ex-message %) (ex-message %) %))
+    (update-in [:shrunk :result-data :clojure.test.check.properties/error] #(or (data/ex-message %) (ex-message %) %))))
 
 
 (defn exercise-n
@@ -32,11 +32,11 @@
   - https://youtu.be/Qx0-pViyIDU?list=PLqlIeRk5-BL7wc6OWdXmGcAGc4XId82-1&t=1014
   "
   ([n schema]
-   (gen/sample (mg/generator schema) n))
+   (test.check.generators/sample (malli.generator/generator schema) n))
   ([n f schema]
    (let [d  (atom [])
-         qc (tc/quick-check n
-              (prop'/for-all [input (mg/generator schema)]
+         qc (test.check/quick-check n
+              (properties/for-all [input (malli.generator/generator schema)]
                 (let [result (f input)]
                   (swap! d conj result)
                   result)))]
@@ -45,9 +45,9 @@
        (format-quick-check qc))))
   ([n f schema1 schema2]
    (let [d  (atom [])
-         qc (tc/quick-check n
-              (prop'/for-all [input01 (mg/generator schema1)
-                              input02 (mg/generator schema2)]
+         qc (test.check/quick-check n
+              (properties/for-all [input01 (malli.generator/generator schema1)
+                                   input02 (malli.generator/generator schema2)]
                 (swap! d conj (f input01 input02))))]
      (if (:pass? qc)
        (deref d)
@@ -78,10 +78,10 @@
   - https://youtu.be/Qx0-pViyIDU?list=PLqlIeRk5-BL7wc6OWdXmGcAGc4XId82-1&t=1014
   "
   ([schema]
-   (gen/sample (mg/generator schema)))
+   (test.check.generators/sample (malli.generator/generator schema)))
   ([f schema]
-   (let [qc (tc/quick-check 100
-              (prop'/for-all [input (mg/generator schema)]
+   (let [qc (test.check/quick-check 100
+              (properties/for-all [input (malli.generator/generator schema)]
                 (f input)))]
      (format-quick-check qc))))
 
@@ -137,10 +137,10 @@
   "
   [schema value]
   (try
-    (m/coerce schema value)
+    (malli/coerce schema value)
     (catch Exception ex
       (let [error-msg (data/ex-message ex)]
-        (t/is (= "" error-msg) (str value))))))
+        (clj.test/is (= "" error-msg) (str value))))))
 
 (comment
   (check-schema [:map] {:b 2})

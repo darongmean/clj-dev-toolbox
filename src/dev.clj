@@ -1,15 +1,22 @@
 (ns dev
   (:require
-   [clojure.repl :as repl]
-   [dev.data]
-   [dev.http]
-   [dev.inspect]
-   [dev.snapshot]
-   [dev.system]
-   [dev.test]
-   [sc.api]
-   [talltale.core]
-   [vinyasa.inject :as inject]))
+    [clojure.repl :as repl]
+    [vinyasa.inject :as inject]))
+
+
+(println "---------------------------------------------------------")
+(println "Loading dev namespace tools...")
+(println "---------------------------------------------------------")
+
+
+(require '[dev.data])
+(require '[dev.http])
+(require '[dev.inspect])
+(require '[dev.snapshot])
+(require '[dev.system])
+(require '[dev.testing])
+(require '[sc.api])
+(require '[talltale.core])
 
 
 ;;; schema and data tools
@@ -65,7 +72,7 @@
 
 ;;; test tools
 
-(inject/inject 'dev '[[dev.test
+(inject/inject 'dev '[[dev.testing
                        ;;
                        exercise
                        exercise-n
@@ -122,10 +129,6 @@
   (repl/dir dev))
 
 
-(println "---------------------------------------------------------")
-(println "Loading dev namespace tools...")
-(println "---------------------------------------------------------")
-
 (defn help
   "Print help text.
 
@@ -148,6 +151,9 @@
    (println "ex: (dev/pprint (atom {:a :b}))        ;:=> #atom[{:a :b} 0x6cdba772]")
    (println)
    (tools)))
+
+
+(println "---------------------------------------------------------")
 
 (help)
 

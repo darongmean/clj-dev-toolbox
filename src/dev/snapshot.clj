@@ -1,25 +1,25 @@
 (ns dev.snapshot
-  (:refer-clojure :exclude [replace test])
+  (:refer-clojure :exclude [replace])
   (:require
-   [babashka.fs :as fs]
-   [clojure.set :as set]
-   [dev.data :as data]
-   [dev.test :as test]))
+    [babashka.fs :as fs]
+    [clojure.set :as set]
+    [dev.data :as data]
+    [dev.testing :as testing]))
 
 
 (defn ns-dir [n]
   (let [pattern (str "regex:.*" (ns-name n) "\\.clj")]
     (->> (fs/match "." pattern {:recursive true})
-         (map fs/parent)
-         (first))))
+      (map fs/parent)
+      (first))))
 
 
 (defn parse-dir [{:keys [dir caller-ns] :as _opts}]
   (let [path (if (fs/relative? dir)
                (fs/path (or (ns-dir caller-ns)
-                            (throw (ex-info (str "could not find directory of the namespace: " (ns-name caller-ns))
-                                            {:caller-ns caller-ns})))
-                        dir)
+                          (throw (ex-info (str "could not find directory of the namespace: " (ns-name caller-ns))
+                                   {:caller-ns caller-ns})))
+                 dir)
                (fs/path (str "." dir)))]
 
     {:snapshot/dir (fs/absolutize path)}))
@@ -30,7 +30,7 @@
 
 (defn parse-opts [opts]
   (merge (parse-dir opts)
-         (parse-scrubber opts)))
+    (parse-scrubber opts)))
 
 
 (defmacro snapshot
@@ -46,7 +46,7 @@
         f           (fs/file dir file-name)
 
         content     (data/print-edn value
-                                    :replace (merge replace (:replace options)))]
+                      :replace (merge replace (:replace options)))]
 
     {:create-dirs?     (not dir-exists?)
      :create-dirs/args {:path dir}
@@ -80,24 +80,24 @@
 
   ;; write
   (-write-snapshot (snapshot "./testdata/snapshot")
-                   {:a :b})
+    {:a :b})
   (write-snapshot (snapshot "./testdata/snapshot")
-                  {:a :b})
+    {:a :b})
   (write-snapshot (snapshot "./testdata/snapshot")
-                  {:b :c})
+    {:b :c})
 
   ;; scrubbers
   (parse-scrubber {:with-scrubber {"b" "[b]"}})
   (snapshot "./testdata/snapshot" :with-scrubber {"b" "[scrubbed_b]"})
 
   (-write-snapshot (snapshot "./testdata/snapshot" :with-scrubber {"b" "[b]"})
-                   {:a "b"})
+    {:a "b"})
   (-write-snapshot (snapshot "./testdata/snapshot")
-                   {:a "b"}
-                   :replace {"b" "[b]"})
+    {:a "b"}
+    :replace {"b" "[b]"})
   (write-snapshot (snapshot "./testdata/snapshot")
-                  {:a "b"}
-                  :replace {"b" "[b]"})
+    {:a "b"}
+    :replace {"b" "[b]"})
   ;;;
   )
 
@@ -105,10 +105,10 @@
 (defn -read-snapshot-n
   [n {:snapshot/keys [dir]}]
   (let [files-by-desc (some->> (fs/list-dir dir "*.edn")
-                               (filter fs/regular-file?)
-                               (sort-by fs/file-name #(compare %2 %1))
-                               (map fs/file)
-                               (take n))]
+                        (filter fs/regular-file?)
+                        (sort-by fs/file-name #(compare %2 %1))
+                        (map fs/file)
+                        (take n))]
 
     (for [f files-by-desc]
       {:slurp/args {:f f}})))
@@ -118,12 +118,12 @@
    (read-snapshot-n 2 snapshot))
   ([n snapshot & {:as options}]
    (let [restore (merge (:snapshot/restore snapshot)
-                        (:restore options))]
+                   (:restore options))]
 
      (when (fs/exists? (:snapshot/dir snapshot))
        (->> (-read-snapshot-n n snapshot)
-            (mapv #(slurp (get-in % [:slurp/args :f])))
-            (mapv #(data/read-edn % :replace restore)))))))
+         (mapv #(slurp (get-in % [:slurp/args :f])))
+         (mapv #(data/read-edn % :replace restore)))))))
 
 (defn read-snapshot
   [snapshot & {:as options}]
@@ -138,40 +138,40 @@
   ;; scrubbers
   (read-snapshot (snapshot "./testdata/snapshot" :with-scrubber {"b" "[b]"}))
   (read-snapshot (snapshot "./testdata/snapshot")
-                 ;; note that :restore is a reverse map of :with-scrubber
-                 :restore {"[b]" "b"})
+    ;; note that :restore is a reverse map of :with-scrubber
+    :restore {"[b]" "b"})
   ;;;
   )
 
 
 (defn check-snapshot
   [snapshot value & {:as options}]
-  (let [saved          (read-snapshot (select-keys snapshot [:snapshot/dir])) ; ignore :restore and scrubbers
+  (let [saved          (read-snapshot (select-keys snapshot [:snapshot/dir]))                                           ; ignore :restore and scrubbers
 
         plan           (-write-snapshot snapshot value options)
         would-be-saved (data/read-edn (get-in plan [:spit/args :content]))]
 
-    (test/check saved would-be-saved)))
+    (testing/check saved would-be-saved)))
 
 (comment
   ;;;
   ;; should work
   (check-snapshot (snapshot "./testdata/snapshot" :with-scrubber {"b" "[b]"})
-                  {:a "b"})
+    {:a "b"})
   ;; should fail
   (check-snapshot (snapshot "./testdata/snapshot")
-                  {:a :b})
+    {:a :b})
 
   ;; :replace option should work as expected
   (check-snapshot (snapshot "./testdata/snapshot" :with-scrubber {":b" ":cde"})
-                  {:a :b})
+    {:a :b})
   (check-snapshot (snapshot "./testdata/snapshot")
-                  {:a :b}
-                  :replace {":b" ":cde"})
+    {:a :b}
+    :replace {":b" ":cde"})
 
   ;; :restore option is ignored
   (check-snapshot (snapshot "./testdata/snapshot")
-                  {:a :b}
-                  :restore {"[b]" "b"})
+    {:a :b}
+    :restore {"[b]" "b"})
   ;;;
   )
