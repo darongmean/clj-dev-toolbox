@@ -32,6 +32,7 @@
 (inject/inject 'dev '[[dev.snapshot
                        ;;
                        snapshot
+                       check-snapshot
                        write-snapshot
                        read-snapshot-n
                        read-snapshot]])

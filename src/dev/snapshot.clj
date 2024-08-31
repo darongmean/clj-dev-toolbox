@@ -1,9 +1,10 @@
 (ns dev.snapshot
-  (:refer-clojure :exclude [replace])
+  (:refer-clojure :exclude [replace test])
   (:require
    [babashka.fs :as fs]
    [clojure.set :as set]
-   [dev.data :as data]))
+   [dev.data :as data]
+   [dev.test :as test]))
 
 
 (defn ns-dir [n]
@@ -137,5 +138,38 @@
   (read-snapshot (snapshot "./testdata/snapshot")
                  ;; note that :restore is a reverse map of :with-scrubber
                  :restore {"[b]" "b"})
+  ;;;
+  )
+
+
+(defn check-snapshot
+  [snapshot value & {:as options}]
+  (let [saved          (read-snapshot (select-keys snapshot [:snapshot/dir])) ; ignore :restore and scrubbers
+
+        plan           (-write-snapshot snapshot value options)
+        would-be-saved (data/read-edn (get-in plan [:spit/args :content]))]
+
+    (test/check saved would-be-saved)))
+
+(comment
+  ;;;
+  ;; should work
+  (check-snapshot (snapshot "./testdata/snapshot" :with-scrubber {"b" "[b]"})
+                  {:a "b"})
+  ;; should fail
+  (check-snapshot (snapshot "./testdata/snapshot")
+                  {:a :b})
+
+  ;; :replace option should work as expected
+  (check-snapshot (snapshot "./testdata/snapshot" :with-scrubber {":b" ":cde"})
+                  {:a :b})
+  (check-snapshot (snapshot "./testdata/snapshot")
+                  {:a :b}
+                  :replace {":b" ":cde"})
+
+  ;; :restore option is ignored
+  (check-snapshot (snapshot "./testdata/snapshot")
+                  {:a :b}
+                  :restore {"[b]" "b"})
   ;;;
   )
