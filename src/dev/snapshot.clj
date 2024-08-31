@@ -19,7 +19,7 @@
                         dir)
                (fs/path (str "." dir)))]
 
-    {:dir (fs/absolutize path)}))
+    {:snapshot/dir (fs/absolutize path)}))
 
 
 (defmacro snapshot
@@ -28,7 +28,7 @@
 
 
 (defn -write-snapshot
-  [{:keys [dir] :as _snapshot} value]
+  [{:snapshot/keys [dir]} value]
   (let [dir-exists? (fs/exists? dir)
 
         file-name   (str (System/currentTimeMillis) ".edn")
@@ -36,18 +36,20 @@
 
         content     (data/print-edn value)]
 
-    {:create-dirs-args (when-not dir-exists? {:path dir})
-     :spit-args        {:f       f
+    {:create-dirs?     (not dir-exists?)
+     :create-dirs/args {:path dir}
+     :spit/args        {:f       f
                         :content content}}))
 
 (defn write-snapshot
   [snapshot value]
   (let [plan (-write-snapshot snapshot value)
 
-        {:keys [path]} (:create-dirs-args plan)
-        {:keys [f content]} (:spit-args plan)]
+        {:keys [create-dirs?]} plan
+        {:keys [path]} (:create-dirs/args plan)
+        {:keys [f content]} (:spit/args plan)]
 
-    (when path
+    (when create-dirs?
       (fs/create-dirs path))
 
     (spit f content)))
@@ -61,6 +63,12 @@
   ;; absolute path
   (snapshot "/testdata/snapshot")
 
+  ;;
+  (snapshot "/testdata/snapshot")
+
+  (-write-snapshot (snapshot "./testdata/snapshot")
+                   {:a :b})
+
   ;; write
   (-write-snapshot (snapshot "./testdata/snapshot")
                    {:a :b})
@@ -73,7 +81,7 @@
 
 
 (defn -read-snapshot-n
-  [n {:keys [dir] :as _snapshot}]
+  [n {:snapshot/keys [dir]}]
   (let [files-by-desc (some->> (fs/list-dir dir "*.edn")
                                (filter fs/regular-file?)
                                (sort-by fs/file-name #(compare %2 %1))
@@ -81,15 +89,15 @@
                                (take n))]
 
     (for [f files-by-desc]
-      {:slurp-args {:f f}})))
+      {:slurp/args {:f f}})))
 
 (defn read-snapshot-n
   ([snapshot]
    (read-snapshot-n 2 snapshot))
   ([n snapshot]
-   (when (fs/exists? (:dir snapshot))
+   (when (fs/exists? (:snapshot/dir snapshot))
      (->> (-read-snapshot-n n snapshot)
-          (mapv #(slurp (get-in % [:slurp-args :f])))
+          (mapv #(slurp (get-in % [:slurp/args :f])))
           (mapv data/read-edn)))))
 
 (defn read-snapshot
