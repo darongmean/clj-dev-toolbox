@@ -1,7 +1,8 @@
 (ns dev.data
-  (:refer-clojure :exclude [ex-message])
+  (:refer-clojure :exclude [ex-message replace])
   (:require
    [cheshire.core :as chesire]
+   [clojure.string :as string]
    [edamame.core :as edamame]
    [lambdaisland.data-printers :as dp]
    [lambdaisland.data-printers.deep-diff2 :as dp-ddiff2]
@@ -145,13 +146,22 @@
   ;;;
   )
 
+
+(defn replace-string [s kvs]
+  (reduce #(string/replace %1 (first %2) (second %2))
+          s
+          (seq kvs)))
+
 (defn read-edn
   "Ex:
 
   (read-edn \"{:a :b}\")
   "
-  [string]
-  (edamame/parse-string string {:readers time-literals.read-write/tags}))
+  [string & {:keys [replace]}]
+  (if (seq replace)
+    (edamame/parse-string (replace-string string replace)
+                          {:readers time-literals.read-write/tags})
+    (edamame/parse-string string {:readers time-literals.read-write/tags})))
 
 (comment
   (read-edn "{:a :b}")
@@ -171,8 +181,10 @@
 (defn print-edn
   "Use `print-edn'` to generate an EDN string and check if it can be read by `read-edn`.
   "
-  [value]
-  (let [string (pprint-str value)]
+  [value & {:keys [replace]}]
+  (let [string (if (seq replace)
+                 (replace-string (pprint-str value) replace)
+                 (pprint-str value))]
     (truss/have! read-edn string
                  :data {:msg    "EDN string generated, but failed to read-edn"
                         :string string

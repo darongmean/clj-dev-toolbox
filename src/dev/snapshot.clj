@@ -1,6 +1,8 @@
 (ns dev.snapshot
+  (:refer-clojure :exclude [replace])
   (:require
    [babashka.fs :as fs]
+   [clojure.set :as set]
    [dev.data :as data]))
 
 
@@ -11,7 +13,7 @@
          (first))))
 
 
-(defn parse-opts [{:keys [dir caller-ns] :as _opts}]
+(defn parse-dir [{:keys [dir caller-ns] :as _opts}]
   (let [path (if (fs/relative? dir)
                (fs/path (or (ns-dir caller-ns)
                             (throw (ex-info (str "could not find directory of the namespace: " (ns-name caller-ns))
@@ -21,20 +23,29 @@
 
     {:snapshot/dir (fs/absolutize path)}))
 
+(defn parse-scrubber [{:keys [with-scrubber] :as _opts}]
+  {:snapshot/replace with-scrubber
+   :snapshot/restore (set/map-invert with-scrubber)})
+
+(defn parse-opts [opts]
+  (merge (parse-dir opts)
+         (parse-scrubber opts)))
+
 
 (defmacro snapshot
   ([dir & {:as opts}]
-   `(parse-opts (merge ~opts {:dir ~dir :caller-ns ~*ns*}))))
+   `(parse-opts (merge {:dir ~dir :caller-ns ~*ns*} ~opts))))
 
 
 (defn -write-snapshot
-  [{:snapshot/keys [dir]} value]
+  [{:snapshot/keys [dir replace]} value & {:as options}]
   (let [dir-exists? (fs/exists? dir)
 
         file-name   (str (System/currentTimeMillis) ".edn")
         f           (fs/file dir file-name)
 
-        content     (data/print-edn value)]
+        content     (data/print-edn value
+                                    :replace (merge replace (:replace options)))]
 
     {:create-dirs?     (not dir-exists?)
      :create-dirs/args {:path dir}
@@ -42,8 +53,8 @@
                         :content content}}))
 
 (defn write-snapshot
-  [snapshot value]
-  (let [plan (-write-snapshot snapshot value)
+  [snapshot value & {:as options}]
+  (let [plan (-write-snapshot snapshot value options)
 
         {:keys [create-dirs?]} plan
         {:keys [path]} (:create-dirs/args plan)
@@ -60,14 +71,9 @@
   (parse-opts {:dir "./testdata/snapshot" :caller-ns 'dev.snapshot})
   ;; relative path
   (snapshot "./testdata/snapshot")
+  (snapshot "testdata/snapshot")
   ;; absolute path
   (snapshot "/testdata/snapshot")
-
-  ;;
-  (snapshot "/testdata/snapshot")
-
-  (-write-snapshot (snapshot "./testdata/snapshot")
-                   {:a :b})
 
   ;; write
   (-write-snapshot (snapshot "./testdata/snapshot")
@@ -76,6 +82,19 @@
                   {:a :b})
   (write-snapshot (snapshot "./testdata/snapshot")
                   {:b :c})
+
+  ;; scrubbers
+  (parse-scrubber {:with-scrubber {"b" "[b]"}})
+  (snapshot "./testdata/snapshot" :with-scrubber {"b" "[scrubbed_b]"})
+
+  (-write-snapshot (snapshot "./testdata/snapshot" :with-scrubber {"b" "[b]"})
+                   {:a "b"})
+  (-write-snapshot (snapshot "./testdata/snapshot")
+                   {:a "b"}
+                   :replace {"b" "[b]"})
+  (write-snapshot (snapshot "./testdata/snapshot")
+                  {:a "b"}
+                  :replace {"b" "[b]"})
   ;;;
   )
 
@@ -94,20 +113,29 @@
 (defn read-snapshot-n
   ([snapshot]
    (read-snapshot-n 2 snapshot))
-  ([n snapshot]
-   (when (fs/exists? (:snapshot/dir snapshot))
-     (->> (-read-snapshot-n n snapshot)
-          (mapv #(slurp (get-in % [:slurp/args :f])))
-          (mapv data/read-edn)))))
+  ([n snapshot & {:as options}]
+   (let [restore (merge (:snapshot/restore snapshot)
+                        (:restore options))]
+
+     (when (fs/exists? (:snapshot/dir snapshot))
+       (->> (-read-snapshot-n n snapshot)
+            (mapv #(slurp (get-in % [:slurp/args :f])))
+            (mapv #(data/read-edn % :replace restore)))))))
 
 (defn read-snapshot
-  [snapshot]
-  (first (read-snapshot-n 1 snapshot)))
+  [snapshot & {:as options}]
+  (first (read-snapshot-n 1 snapshot options)))
 
 (comment
   ;;;
   (-read-snapshot-n 3 (snapshot "./testdata/snapshot"))
   (read-snapshot-n 3 (snapshot "./testdata/snapshot"))
   (read-snapshot (snapshot "./testdata/snapshot"))
+
+  ;; scrubbers
+  (read-snapshot (snapshot "./testdata/snapshot" :with-scrubber {"b" "[b]"}))
+  (read-snapshot (snapshot "./testdata/snapshot")
+                 ;; note that :restore is a reverse map of :with-scrubber
+                 :restore {"[b]" "b"})
   ;;;
   )
