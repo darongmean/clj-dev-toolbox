@@ -18,19 +18,19 @@
 
          ;; see https://github.com/djblue/portal/blob/master/doc/ui/viewers.md#default-viewers
          djblue/portal                    {:mvn/version "RELEASE"}
-         lambdaisland/deep-diff2          {:mvn/version "2.11.216"} ;; support :portal.viewer/diff
+         lambdaisland/deep-diff2          {:mvn/version "2.11.216"}                                                     ;; support :portal.viewer/diff
 
          ;; see https://github.com/gnarroway/hato?tab=readme-ov-file#output-coercion
          hato/hato                        {:mvn/version "1.0.0"}
-         cheshire/cheshire                {:mvn/version "5.13.0"} ;; support (hc/get "http://moo.com" {:as :json})
-         com.cognitect/transit-clj        {:mvn/version "1.0.333"} ;; support (hc/get "http://moo.com" {:as :transit+json})
+         cheshire/cheshire                {:mvn/version "5.13.0"}                                                       ;; support (hc/get "http://moo.com" {:as :json})
+         com.cognitect/transit-clj        {:mvn/version "1.0.333"}                                                      ;; support (hc/get "http://moo.com" {:as :transit+json})
 
          ;; see https://github.com/ardumont/vinyasa?tab=readme-ov-file#inject
          im.chit/vinyasa.inject           {:mvn/version "0.2.0"}
 
          ;; see https://github.com/lambdaisland/data-printers?tab=readme-ov-file#readers
          lambdaisland/data-printers       {:mvn/version "0.7.47"}
-         cider/cider-nrepl                {:mvn/version "0.50.1"} ;; see https://metaredux.com/posts/2019/12/05/pimp-my-print-method-prettier-clojure-built-in-types.html
+         cider/cider-nrepl                {:mvn/version "0.50.1"}                                                       ;; see https://metaredux.com/posts/2019/12/05/pimp-my-print-method-prettier-clojure-built-in-types.html
          mvxcvi/puget                     {:mvn/version "1.3.4"}
          org.clojure/java.classpath       {:mvn/version "1.1.0"}
 
@@ -65,7 +65,10 @@
          }
 
  :aliases
- {:test
+ {:dev
+  {:extra-paths ["dev"]}
+
+  :test
   {:extra-paths ["test"]
    :extra-deps  {;;
                  io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}
