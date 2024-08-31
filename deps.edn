@@ -1,6 +1,9 @@
 {:paths ["src" "resources"]
 
  :deps  {;;;
+         ;; see https://github.com/babashka/fs/blob/master/API.md
+         babashka/fs                      {:mvn/version "0.5.22"}
+
          ;; see https://github.com/borkdude/edamame?tab=readme-ov-file#usage
          borkdude/edamame                 {:mvn/version "1.4.27"}
 

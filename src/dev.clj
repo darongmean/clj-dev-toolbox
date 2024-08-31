@@ -4,6 +4,7 @@
    [dev.data]
    [dev.http]
    [dev.inspect]
+   [dev.snapshot]
    [dev.system]
    [dev.test]
    [sc.api]
@@ -25,6 +26,15 @@
                        print-edn
                        pprint-str
                        pprint]])
+
+;;; snapshot data tools
+
+(inject/inject 'dev '[[dev.snapshot
+                       ;;
+                       snapshot
+                       write-snapshot
+                       read-snapshot-n
+                       read-snapshot]])
 
 ;;; fake data tools
 

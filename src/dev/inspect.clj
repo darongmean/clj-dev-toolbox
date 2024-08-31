@@ -29,5 +29,7 @@
 
 
 (defn inspect-diff
-  [left right]
-  (tagged-literal 'cursive/diff {:left left :right right :title "cursive/diff"}))
+  ([[left right]]
+   (inspect-diff left right))
+  ([left right]
+   (tagged-literal 'cursive/diff {:left left :right right :title "cursive/diff"})))
