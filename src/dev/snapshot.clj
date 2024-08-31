@@ -64,7 +64,9 @@
     (when create-dirs?
       (fs/create-dirs path))
 
-    (spit f content)))
+    (spit f content)
+
+    value))
 
 (comment
   ;;;
