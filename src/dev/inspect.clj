@@ -1,6 +1,7 @@
 (ns dev.inspect
   (:require
     [clojure.pprint :as pprint]
+    [dev.data :as data]
     [dev.inspect.inspector]
     [dev.system :as system]
     [portal.api :as portal]))
@@ -24,7 +25,8 @@
      (portal/submit v)
      value))
   ([value]
-   (inspect :inspector value)))
+   (inspect :hiccup [:portal.viewer/code (with-out-str (data/pprint value))])
+   value))
 
 
 (defn inspect-table
