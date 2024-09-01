@@ -1,5 +1,6 @@
 (ns dev.inspect
   (:require
+    [clojure.pprint :as pprint]
     [dev.inspect.inspector]
     [dev.system :as system]
     [portal.api :as portal]))
@@ -12,20 +13,32 @@
 
 
 (defn inspect
-  [value]
-  (system/start #'dev.inspect.inspector/inspector)
-  (portal/submit value)
-  value)
+  ([viewer value]
+   (let [kw (keyword "portal.viewer" (name viewer))
+         v  (if (string? value)
+              (with-meta
+                [:portal.viewer/text value]
+                {:portal.viewer/default :portal.viewer/hiccup})
+              (with-meta value {:portal.viewer/default kw}))]
+     (system/start #'dev.inspect.inspector/inspector)
+     (portal/submit v)
+     value))
+  ([value]
+   (inspect :inspector value)))
 
 
 (defn inspect-table
-  [value]
-  (inspect (with-meta value {:portal.viewer/default :portal.viewer/table})))
+  ([rows]
+   (inspect :hiccup [:portal.viewer/code (with-out-str (pprint/print-table rows))])
+   rows)
+  ([headers rows]
+   (inspect :hiccup [:portal.viewer/code (with-out-str (pprint/print-table headers rows))])
+   rows))
 
 
 (defn inspect-diff2
   [& values]
-  (inspect (with-meta values {:portal.viewer/default :portal.viewer/diff})))
+  (inspect :diff values))
 
 
 (defn inspect-diff
