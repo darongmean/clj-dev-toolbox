@@ -1,24 +1,36 @@
 (ns dev.http
   (:require
+    [babashka.fs :as fs]
     [cheshire.core :as cheshire]
     [clojure.string :as string]
     [dev.inspect :as inspect]
-    [hato.client :as hato]))
+    [dev.snapshot :as snapshot]
+    [hato.client :as hato]
+    [hato.middleware :as hato.middleware]))
 
 
-(defn http
-  "See https://github.com/gnarroway/hato?tab=readme-ov-file#making-queries
+;;;
 
-  Ex:
-  ```clj
+(defn http-snapshot [snapshot {:keys [server-name uri request-method]}]
+  (update snapshot :snapshot/dir fs/path (str server-name
+                                           fs/file-separator
+                                           (string/replace uri "/" fs/file-separator)
+                                           fs/file-separator
+                                           "_"
+                                           (name request-method))))
 
-  (http :get \"https://darongmean.com\")
-  (http :post \"https://darongmean.com\")
+(defn read-http-n
+  [n snapshot method url]
+  (let [request (assoc (hato.middleware/parse-url url) :request-method method)
+        hs      (http-snapshot snapshot request)]
+    (snapshot/read-snapshot-n n hs)))
 
-  ```
-  "
-  [method url & [opts respond raise]]
-  (#'hato/configure-and-execute method url opts respond raise))
+
+(defn read-http
+  [snapshot method url]
+  (let [request (assoc (hato.middleware/parse-url url) :request-method method)
+        hs      (http-snapshot snapshot request)]
+    (snapshot/read-snapshot hs)))
 
 
 ;;; inspect tools
@@ -78,9 +90,10 @@
       (println-json-or-text body))))
 
 
-(defn print-http
+(defn pprint-http
   ([ring]
-   (print-http :no-headers ring))
+   (pprint-http :no-headers ring))
+
   ([with-headers ring]
    (let [{:keys [request-method url version] :as request} (:request ring)
          {:keys [status] :as response} (or (:response ring) ring)
@@ -100,16 +113,33 @@
      (println-request (http-version version) request)
      (println)
      (println-response (http-version version) response)
-     (println))))
+     (println)))
+
+  ([snapshot method url]
+   (pprint-http (read-http snapshot method url)))
+
+  ([with-headers snapshot method url]
+   (pprint-http with-headers (read-http snapshot method url))))
 
 
 (defn inspect-http
   ([value]
-   (inspect/inspect :hiccup [:portal.viewer/text (with-out-str (print-http value))])
+   (inspect/inspect :hiccup [:portal.viewer/text (with-out-str (pprint-http value))])
    value)
+
   ([with-headers value]
-   (inspect/inspect :hiccup [:portal.viewer/text (with-out-str (print-http with-headers value))])
-   value))
+   (inspect/inspect :hiccup [:portal.viewer/text (with-out-str (pprint-http with-headers value))])
+   value)
+
+  ([snapshot method url]
+   (let [value (read-http snapshot method url)]
+     (inspect/inspect :hiccup [:portal.viewer/text (with-out-str (pprint-http value))])
+     value))
+
+  ([with-headers snapshot method url]
+   (let [value (read-http snapshot method url)]
+     (inspect/inspect :hiccup [:portal.viewer/text (with-out-str (pprint-http with-headers value))])
+     value)))
 
 
 (comment
@@ -160,14 +190,86 @@
        :body                "body"}))
 
   ;;
-  (print-http response)
-  (print-http :with-headers response)
+  (pprint-http response)
+  (pprint-http :with-headers response)
 
   ;;
   (http :get "https://darongmean.com")
 
-  (print-http *1)
+  (pprint-http *1)
   (inspect-http *1)
+
+  ;;;
+  )
+
+
+(defn to-edn [ring]
+  (-> ring
+    (dissoc :http-client)
+    (assoc :request (dissoc (:request ring) :http-request))))
+
+;;; Http client tools
+
+(defn make-request
+  "Make a Http request.
+  See https://github.com/gnarroway/hato?tab=readme-ov-file#making-queries
+
+  Ex:
+
+  (make-request :get \"https://darongmean.com\")
+  (make-request :post \"https://darongmean.com\")
+
+  "
+  [method url & [opts respond raise]]
+  (#'hato/configure-and-execute method url opts respond raise))
+
+
+(defn http
+  "Make a Http request and save the response to snapshot.
+  See https://github.com/gnarroway/hato?tab=readme-ov-file#making-queries
+
+  Ex:
+
+  (http (dev/snapshot \"/tmp/testdata\") :get \"https://darongmean.com\")
+  (http (dev/snapshot \"/tmp/testdata\") :post \"https://darongmean.com\" {:body \"example\"})
+
+  "
+  ([snapshot method url]
+   (http snapshot method url {}))
+
+  ([snapshot method url opts]
+   (let [{:keys [request] :as data} (to-edn (make-request method url opts))
+         s (http-snapshot snapshot request)]
+
+     (snapshot/write-snapshot s data)
+     (pprint-http (snapshot/read-snapshot s)))))
+
+(comment
+  ;;; check snapshot directory
+  (http-snapshot (snapshot/snapshot "/tmp/testdata") {:server-name    "localhost"
+                                                      :uri            "/test/abc"
+                                                      :request-method :get})
+  (http-snapshot (snapshot/snapshot "/tmp/testdata") {:server-name    "localhost"
+                                                      :uri            ""
+                                                      :request-method :get})
+  (http-snapshot (snapshot/snapshot "/tmp/testdata") {:server-name    "localhost"
+                                                      :uri            "/"
+                                                      :request-method :get})
+
+  ;; make requests with snapshot
+  (http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+
+  ;; read snapshot
+  (read-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+  (read-http-n 2 (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+
+  ;; pprint snapshot
+  (pprint-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+  (pprint-http :with-headers (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+
+  ;; inspect snapshot
+  (inspect-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+  (inspect-http :with-headers (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
 
   ;;;
   )

@@ -101,9 +101,12 @@
 
 (inject/inject 'dev '[[dev.http
                        ;;
+                       make-request
                        http
-                       print-http
-                       inspect-http]])
+                       pprint-http
+                       inspect-http
+                       read-http
+                       read-http-n]])
 
 
 ;;; inspect tools
