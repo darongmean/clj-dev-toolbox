@@ -101,7 +101,9 @@
 
 (inject/inject 'dev '[[dev.http
                        ;;
-                       http]])
+                       http
+                       print-http
+                       inspect-http]])
 
 
 ;;; inspect tools

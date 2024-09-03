@@ -114,8 +114,10 @@
 
   (read-json \"{\\\"a\\\":\\\"b\\\"}\")
   "
-  [string]
-  (chesire/parse-string string true))
+  ([string]
+   (chesire/parse-string string true))
+  ([string keyfn]
+   (chesire/parse-string string keyfn)))
 
 (comment
   (read-json "{\"a\":\"b\"}")

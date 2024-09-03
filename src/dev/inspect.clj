@@ -48,3 +48,9 @@
    (inspect-diff left right))
   ([left right]
    (tagged-literal 'cursive/diff {:left left :right right :title "cursive/diff"})))
+
+
+;;; other visualizations for map
+;;;
+;;; https://helpx.adobe.com/coldfusion/cfml-reference/coldfusion-functions/functions-s/structmap.html
+;;; https://github.com/yogthos/json-html/tree/master
