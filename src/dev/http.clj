@@ -95,8 +95,8 @@
    (pprint-http :no-headers ring))
 
   ([with-headers ring]
-   (let [{:keys [request-method url version] :as request} (:request ring)
-         {:keys [status] :as response} (or (:response ring) ring)
+   (let [{:keys [request-method version] :as request} (:request ring)
+         {:keys [status uri] :as response} (or (:response ring) ring)
 
          version  (or version (:version response) (:version ring))
          request  (if (= :with-headers with-headers)
@@ -108,7 +108,7 @@
                       (dissoc :headers)
                       (assoc-in [:headers "content-type"] (get-in response [:headers "content-type"]))))]
      (println)
-     (println status "-" (request-method-str request-method) "-" url)
+     (println (or (not-empty status) "N/A") "-" (request-method-str request-method) "-" uri)
      (println)
      (println-request (http-version version) request)
      (println)
@@ -221,7 +221,12 @@
 
   "
   [method url & [opts respond raise]]
-  (#'hato/configure-and-execute method url opts respond raise))
+  (#'hato/configure-and-execute
+    method
+    url
+    (merge {:throw-exceptions false} opts)
+    respond
+    raise))
 
 
 (defn http
@@ -258,9 +263,10 @@
 
   ;; make requests with snapshot
   (http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+  (http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com/abc?a=b")
 
   ;; read snapshot
-  (read-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
+  (read-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com/abc")
   (read-http-n 2 (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
 
   ;; pprint snapshot
