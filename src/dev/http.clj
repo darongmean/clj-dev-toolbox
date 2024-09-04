@@ -103,10 +103,10 @@
    (pprint-http :no-headers ring))
 
   ([with-headers ring]
-   (let [{:keys [request-method version] :as request} (:request ring)
-         {:keys [status uri] :as response} (or (:response ring) ring)
+   (let [{:keys [request-method] :as request} (:request ring)
+         {:keys [status uri version] :as response} (or (:response ring) ring)
 
-         version  (or version (:version response) (:version ring))
+         version  (or version (:version request))
          request  (if (= :with-headers with-headers)
                     request
                     (dissoc request :headers))
@@ -232,7 +232,11 @@
   (#'hato/configure-and-execute
     method
     url
-    (merge {:throw-exceptions false} opts)
+    (merge
+      {:version          :http-1.1
+       :content-type     :json
+       :throw-exceptions false}
+      opts)
     respond
     raise))
 
@@ -244,7 +248,21 @@
   Ex:
 
   (http (dev/snapshot \"/tmp/testdata\") :get \"https://darongmean.com\")
-  (http (dev/snapshot \"/tmp/testdata\") :post \"https://darongmean.com\" {:body \"example\"})
+
+  (http (dev/snapshot \"/tmp/testdata\") :post \"https://darongmean.com\"
+    {:form-params  {:a \"b\" :c :d}})
+
+  (http (dev/snapshot \"/tmp/testdata\") :post \"https://darongmean.com\"
+    {:content-type :json
+     :form-params  {:a \"b\" :c :d}})
+
+  (http (dev/snapshot \"/tmp/testdata\") :post \"https://darongmean.com\"
+    {:content-type :x-www-form-urlencoded
+     :form-params  {:a \"b\" :c :d}})
+
+  (http (dev/snapshot \"/tmp/testdata\") :post \"https://darongmean.com\"
+    {:content-type \"text/plain\"
+     :form-params  {:a \"b\" :c :d}})
 
   "
   ([snapshot method url]
@@ -272,6 +290,11 @@
   ;; make requests with snapshot
   (http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com")
   (http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com/abc?a=b")
+
+  (http (snapshot/snapshot "/tmp/testdata")
+    :post "https://webhook-test.com/f0540553e2e7ce1f2c0277c4ebcf6810"
+    {:content-type :json
+     :form-params  {:a "b" :c :d}})
 
   ;; read snapshot
   (read-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com/abc")
