@@ -9,6 +9,24 @@
     [hato.middleware :as hato.middleware]
     [ring.util.http-status :as http-status]))
 
+;;; dynamic vars
+
+(def **req (atom nil))
+
+
+(defn *req
+  "The most recent value of HTTP request."
+  []
+  (deref **req))
+
+
+(def **res (atom nil))
+
+
+(defn *res
+  "The most recent value of HTTP response."
+  []
+  (deref **res))
 
 ;;;
 
@@ -19,6 +37,7 @@
                                            fs/file-separator
                                            "_"
                                            (name request-method))))
+
 
 (defn read-http-n
   [n snapshot method url]
@@ -228,17 +247,28 @@
   (make-request :post \"https://darongmean.com\")
 
   "
-  [method url & [opts respond raise]]
-  (#'hato/configure-and-execute
-    method
-    url
-    (merge
-      {:version          :http-1.1
-       :content-type     :json
-       :throw-exceptions false}
-      opts)
-    respond
-    raise))
+  ([req]
+   (let [resp (hato/request req)]
+
+     (reset! **req req)
+     (reset! **res resp)
+
+     resp))
+
+  ([method url & [opts]]
+   (let [resp (#'hato/configure-and-execute
+                method
+                url
+                (merge
+                  {:version          :http-1.1
+                   :content-type     :json
+                   :throw-exceptions false}
+                  opts))]
+
+     (reset! **req (merge opts {:request-method method :url url}))
+     (reset! **res resp)
+
+     resp)))
 
 
 (defn http
@@ -293,8 +323,11 @@
 
   (http (snapshot/snapshot "/tmp/testdata")
     :post "https://webhook-test.com/f0540553e2e7ce1f2c0277c4ebcf6810"
-    {:content-type :json
-     :form-params  {:a "b" :c :d}})
+    {:form-params {:a "b" :c :d}})
+
+  ;; check most recent values
+  (*req)
+  (*res)
 
   ;; read snapshot
   (read-http (snapshot/snapshot "/tmp/testdata") :get "https://darongmean.com/abc")

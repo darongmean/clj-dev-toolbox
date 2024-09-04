@@ -6,6 +6,17 @@
     [dev.data :as data]
     [dev.testing :as testing]))
 
+;;; dynamic vars
+
+(def **snapshot (atom nil))
+
+
+(defn *snapshot
+  "The most recent value written to a snapshot."
+  []
+  (deref **snapshot))
+
+;;;
 
 (defn ns-dir [n]
   (let [pattern (str "regex:.*" (ns-name n) "\\.clj")]
@@ -65,8 +76,9 @@
       (fs/create-dirs path))
 
     (spit f content)
+    (reset! **snapshot value)
 
-    value))
+    nil))
 
 (comment
   ;;;

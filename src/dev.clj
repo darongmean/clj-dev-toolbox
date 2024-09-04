@@ -38,6 +38,7 @@
 
 (inject/inject 'dev '[[dev.snapshot
                        ;;
+                       *snapshot
                        snapshot
                        check-snapshot
                        write-snapshot
@@ -101,6 +102,8 @@
 
 (inject/inject 'dev '[[dev.http
                        ;;
+                       *req
+                       *res
                        make-request
                        http
                        pprint-http
@@ -113,7 +116,7 @@
 
 (inject/inject 'dev '[[dev.inspect
                        ;;
-                       *v
+                       *portal
                        inspect
                        inspect-table
                        inspect-diff

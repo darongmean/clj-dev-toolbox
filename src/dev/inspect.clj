@@ -7,7 +7,7 @@
     [portal.api :as portal]))
 
 
-(defn *v
+(defn *portal
   "Current value of selected item in the portal inspector."
   []
   (deref dev.inspect.inspector/inspector))
