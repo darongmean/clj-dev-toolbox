@@ -6,7 +6,8 @@
     [dev.inspect :as inspect]
     [dev.snapshot :as snapshot]
     [hato.client :as hato]
-    [hato.middleware :as hato.middleware]))
+    [hato.middleware :as hato.middleware]
+    [ring.util.http-status :as http-status]))
 
 
 ;;;
@@ -45,11 +46,18 @@
       (println s))))
 
 
-(defn http-version [v]
+(defn version-str [v]
   (cond
     (= :http-1.1 v) "HTTP/1.1"
     (= :http-2 v) "HTTP/2"
     :else (str v)))
+
+
+(defn status-str [status]
+  (let [n (get-in http-status/status [status :name])]
+    (if (some? n)
+      (str status " " n)
+      "N/A")))
 
 
 (defn capitalize-snake-case [s]
@@ -66,7 +74,7 @@
   (let [{:keys [request-method uri server-name headers body query-string]} request
 
         bd-or-qs (or body query-string)]
-    (println (request-method-str request-method) (or (not-empty uri) "/") version)
+    (println (request-method-str request-method) (or (not-empty uri) "/") (version-str version))
     (println "Host:" server-name)
 
     (doseq [[k v] (sort-by first headers)]
@@ -79,7 +87,7 @@
 
 (defn println-response [version response]
   (let [{:keys [status headers body]} response]
-    (println version status)
+    (println (version-str version) (status-str status))
 
     (doseq [[k v] (sort-by first headers)
             :when (not= k ":status")]
@@ -108,11 +116,11 @@
                       (dissoc :headers)
                       (assoc-in [:headers "content-type"] (get-in response [:headers "content-type"]))))]
      (println)
-     (println (or (not-empty status) "N/A") "-" (request-method-str request-method) "-" uri)
+     (println (status-str status) "-" (request-method-str request-method) "-" uri)
      (println)
-     (println-request (http-version version) request)
+     (println-request version request)
      (println)
-     (println-response (http-version version) response)
+     (println-response version response)
      (println)))
 
   ([snapshot method url]

@@ -37,6 +37,9 @@
          ;; see https://github.com/metosin/malli?tab=readme-ov-file#coercion
          metosin/malli                    {:mvn/version "0.16.3"}
 
+         ;; see https://github.com/metosin/ring-http-response/blob/master/src/ring/util/http_status.clj
+         metosin/ring-http-response       {:mvn/version "0.9.4"}
+
          ;; see https://github.com/tolitius/mount?tab=readme-ov-file#how
          mount/mount                      {:mvn/version "0.1.19"}
          tolitius/mount-up                {:mvn/version "0.1.3"}
