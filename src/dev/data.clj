@@ -113,14 +113,32 @@
   "Ex:
 
   (read-json \"{\\\"a\\\":\\\"b\\\"}\")
+
+  (read-json {:file \"./tmp/testdata.json\"})
   "
-  ([string]
-   (chesire/parse-string string true))
-  ([string keyfn]
-   (chesire/parse-string string keyfn)))
+  ([string-or-map]
+   (read-json string-or-map true))
+
+  ([string-or-map keyfn]
+   (let [{:keys [string file]} (if (string? string-or-map)
+                                 {:string string-or-map}
+                                 string-or-map)
+
+         json-string (cond
+                       (some? string) string
+                       (some? file) (slurp file)
+                       :else (throw (ex-info "need either :string or :file"
+                                      {:string-or-map string-or-map})))]
+
+     (chesire/parse-string json-string keyfn))))
 
 (comment
   (read-json "{\"a\":\"b\"}")
+  (read-json "{\"a\":\"b\"}" false)
+
+  (slurp "./tmp/testdata.json")
+  (read-json {:file "./tmp/testdata.json"})
+  (read-json {:file "./tmp/testdata.json"} false)
   ;;;
   )
 
@@ -158,15 +176,33 @@
   "Ex:
 
   (read-edn \"{:a :b}\")
+
+  (read-edn {:file \"./tmp/testdata.edn\"})
   "
-  [string & {:keys [replace]}]
-  (if (seq replace)
-    (edamame/parse-string (replace-string string replace)
-      {:readers time-literals.read-write/tags})
-    (edamame/parse-string string {:readers time-literals.read-write/tags})))
+  [string-or-map & {:keys [replace]}]
+  (let [{:keys [string file]} (if (string? string-or-map)
+                                {:string string-or-map}
+                                string-or-map)
+
+        edn-string (cond
+                     (some? string) string
+                     (some? file) (slurp file)
+                     :else (throw (ex-info "need either :string or :file"
+                                    {:string-or-map string-or-map})))
+
+        edn-string (if (some? replace)
+                     (replace-string edn-string replace)
+                     edn-string)]
+
+    (edamame/parse-string edn-string {:readers time-literals.read-write/tags})))
 
 (comment
   (read-edn "{:a :b}")
+  (read-edn "{:a :b}" :replace {":b" ":c"})
+
+  (slurp "./tmp/testdata.edn")
+  (read-edn {:file "./tmp/testdata.edn"})
+  (read-edn {:file "./tmp/testdata.edn"} :replace {":B" ":b"})
   ;;;
   )
 
